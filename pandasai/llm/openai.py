@@ -95,7 +95,7 @@ class OpenAI(BaseOpenAI):
             str: Response
         """
         self.last_prompt = str(instruction) + str(value)
-
+        print("Prpompt", str(instruction), "vals", str(value))
         if self.model in self._supported_completion_models:
             response = self.completion(str(instruction) + str(value) + suffix)
         elif self.model in self._supported_chat_models:

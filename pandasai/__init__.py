@@ -175,6 +175,7 @@ class PandasAI(Shortcuts):
         custom_whitelisted_dependencies=None,
         enable_logging=True,
         non_default_prompts: Optional[Dict[str, Type[Prompt]]] = None,
+        non_default_vals: Optional[Dict[str, Type[Dict]]] = None,
         callback: BaseCallback= DefaultCallback,
     ):
         """
@@ -235,7 +236,9 @@ class PandasAI(Shortcuts):
         self._non_default_prompts = (
             {} if non_default_prompts is None else non_default_prompts
         )
-
+        self._non_default_vals = (
+            {} if non_default_vals is None else non_default_vals
+        )
         self.notebook = Notebook()
         self._in_notebook = self.notebook.in_notebook()
 
@@ -271,6 +274,13 @@ class PandasAI(Shortcuts):
 
         self._llm = llm
 
+    def _get_prompt(self, key:str, default_prompt: Prompt, default_vals = {}) -> Prompt:
+        
+        if self._non_default_prompts.get(key, None):
+            return self._non_default_prompts[key]
+        
+        return default_prompt.__init__(default_vals)
+
     def conversational_answer(self, question: str, answer: str) -> str:
         """
         Returns the answer in conversational form about the resultant data.
@@ -288,9 +298,11 @@ class PandasAI(Shortcuts):
             # if the user has set enforce_privacy to True
             return answer
 
-        generate_response_instruction = self._non_default_prompts.get(
+        """generate_response_instruction = self._non_default_prompts.get(
             "generate_response", GenerateResponsePrompt
-        )(question=question, answer=answer)
+        )(question=question, answer=answer)"""
+
+        generate_response_instruction = self._get_prompt(key="generate_response", default_prompt=GenerateResponsePrompt, default_vals={"question" : question, "answer" : answer})
         return self._llm.call(generate_response_instruction, "")
 
     def run(
@@ -345,9 +357,10 @@ class PandasAI(Shortcuts):
                         for dataframe in data_frame
                     ]
 
-                    multiple_dataframes_instruction = self._non_default_prompts.get(
+                    """multiple_dataframes_instruction = self._non_default_prompts.get(
                         "multiple_dataframes", MultipleDataframesPrompt
-                    )
+                    )"""
+                    multiple_dataframes_instruction = self._get_prompt(key="multiple_dataframes", default_prompt=MultipleDataframesPrompt)
                     code = self._llm.generate_code(
                         multiple_dataframes_instruction(dataframes=heads),
                         prompt,
@@ -364,14 +377,22 @@ class PandasAI(Shortcuts):
                         df_head = anonymize_dataframe_head(df_head)
                     df_head = df_head.to_csv(index=False)
 
-                    generate_code_instruction = self._non_default_prompts.get(
+                    """ generate_code_instruction = self._non_default_prompts.get(
                         "generate_python_code", GeneratePythonCodePrompt
                     )(
                         prompt=prompt,
                         df_head=df_head,
                         num_rows=data_frame.shape[0],
                         num_columns=data_frame.shape[1],
-                    )
+                    )"""
+                    
+                    generate_code_instruction = self._get_prompt("generate_python_code", default_prompt=GeneratePythonCodePrompt, default_vals={
+                        "df_head" : df_head,
+                        "num_rows" : data_frame.shape[0],
+                        "num_columns" : data_frame.shape[1]
+                    })
+                    print("got", generate_code_instruction)
+
                     code = self._llm.generate_code(
                         generate_code_instruction,
                         prompt,
@@ -594,7 +615,7 @@ class PandasAI(Shortcuts):
         """
 
         if multiple:
-            error_correcting_instruction = self._non_default_prompts.get(
+            """error_correcting_instruction = self._non_default_prompts.get(
                 "correct_multiple_dataframes_error",
                 CorrectMultipleDataframesErrorPrompt,
             )(
@@ -603,6 +624,13 @@ class PandasAI(Shortcuts):
                 question=self._original_instructions["question"],
                 df_head=self._original_instructions["df_head"],
             )
+"""
+            error_correcting_instruction = self._get_prompt(key="correct_multiple_dataframes_error", default_prompt=ConnectionAbortedError, default_vals={
+                "code" : code,
+                "error_returned" : e,
+                "question" : self._original_instructions["question"],
+                "df_head" : self._original_instructions["df_head"]
+            })
 
         else:
             error_correcting_instruction = self._non_default_prompts.get(

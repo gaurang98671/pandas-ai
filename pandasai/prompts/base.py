@@ -19,7 +19,7 @@ class Prompt:
         """
         if kwargs:
             self._args = kwargs
-
+           
     def __str__(self):
         if self.text is None:
             raise MethodNotImplementedError
