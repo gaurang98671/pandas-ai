@@ -72,6 +72,7 @@ from .prompts.generate_response import GenerateResponsePrompt
 from .prompts.multiple_dataframes import MultipleDataframesPrompt
 from .callbacks.base import BaseCallback, DefaultCallback
 
+
 def get_version():
     """
     Get the version from the package metadata
@@ -175,8 +176,7 @@ class PandasAI(Shortcuts):
         custom_whitelisted_dependencies=None,
         enable_logging=True,
         non_default_prompts: Optional[Dict[str, Type[Prompt]]] = None,
-        non_default_vals: Optional[Dict[str, Type[Dict]]] = None,
-        callback: BaseCallback= DefaultCallback,
+        callback: BaseCallback = DefaultCallback,
     ):
         """
 
@@ -236,9 +236,7 @@ class PandasAI(Shortcuts):
         self._non_default_prompts = (
             {} if non_default_prompts is None else non_default_prompts
         )
-        self._non_default_vals = (
-            {} if non_default_vals is None else non_default_vals
-        )
+       
         self.notebook = Notebook()
         self._in_notebook = self.notebook.in_notebook()
 
@@ -615,7 +613,7 @@ class PandasAI(Shortcuts):
         """
 
         if multiple:
-            """error_correcting_instruction = self._non_default_prompts.get(
+            error_correcting_instruction = self._non_default_prompts.get(
                 "correct_multiple_dataframes_error",
                 CorrectMultipleDataframesErrorPrompt,
             )(
@@ -623,8 +621,7 @@ class PandasAI(Shortcuts):
                 error_returned=e,
                 question=self._original_instructions["question"],
                 df_head=self._original_instructions["df_head"],
-            )
-"""
+       )
             error_correcting_instruction = self._get_prompt(key="correct_multiple_dataframes_error", default_prompt=ConnectionAbortedError, default_vals={
                 "code" : code,
                 "error_returned" : e,
