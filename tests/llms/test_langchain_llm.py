@@ -3,8 +3,8 @@
 from langchain.llms import OpenAI
 import pytest
 
-from pandasai.llm.langchain import LangchainLLM
-from pandasai.prompts.base import Prompt
+from pandasai.llm import LangchainLLM
+from pandasai.prompts import AbstractPrompt
 from unittest.mock import Mock
 
 
@@ -25,10 +25,10 @@ class TestLangchainLLM:
 
     @pytest.fixture
     def prompt(self):
-        class MockPrompt(Prompt):
-            text: str = "Hello"
+        class MockAbstractPrompt(AbstractPrompt):
+            template: str = "Hello"
 
-        return MockPrompt()
+        return MockAbstractPrompt()
 
     def test_langchain_llm_type(self, langchain_llm):
         langchain_wrapper = LangchainLLM(langchain_llm)
@@ -39,6 +39,5 @@ class TestLangchainLLM:
         langchain_wrapper = LangchainLLM(langchain_llm)
 
         assert (
-            langchain_wrapper.call(instruction=prompt, value="world", suffix="!")
-            == "Custom response"
+            langchain_wrapper.call(instruction=prompt, suffix="!") == "Custom response"
         )

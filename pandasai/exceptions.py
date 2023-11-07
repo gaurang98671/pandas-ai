@@ -5,6 +5,16 @@ This module contains the implementation of Custom Exceptions.
 """
 
 
+class InvalidRequestError(Exception):
+
+    """
+    Raised when the request is not succesfull.
+
+    Args :
+        Exception (Exception): InvalidRequestError
+    """
+
+
 class APIKeyNotFoundError(Exception):
 
     """
@@ -42,13 +52,48 @@ class MethodNotImplementedError(Exception):
     """
 
 
-class UnsupportedOpenAIModelError(Exception):
+class UnsupportedModelError(Exception):
     """
-    Raised when an unsupported OpenAI model is used.
+    Raised when an unsupported model is used.
 
     Args:
-        Exception (Exception): UnsupportedOpenAIModelError
+        model_name (str): The name of the unsupported model.
+        Exception (Exception): UnsupportedModelError
     """
+
+    def __init__(self, model_name):
+        self.model = model_name
+        super().__init__(
+            f"Unsupported model: The model '{model_name}' doesn't exist "
+            f"or is not supported yet."
+        )
+
+
+class MissingModelError(Exception):
+    """
+    Raised when deployment name is not passed to azure as it's a required paramter
+
+    Args:
+    Exception (Exception): MissingModelError
+    """
+
+
+class LLMResponseHTTPError(Exception):
+    """
+    Raised when a remote LLM service responses with error HTTP code.
+
+    Args:
+        Exception (Exception): LLMResponseHTTPError
+    """
+
+    def __init__(self, status_code, error_msg=None):
+        self.status_code = status_code
+        self.error_msg = error_msg
+
+        super().__init__(
+            f"The remote server has responded with an error HTTP "
+            f"code: {status_code}; {error_msg or ''}"
+        )
 
 
 class BadImportError(Exception):
@@ -71,3 +116,42 @@ class BadImportError(Exception):
             f"Generated code includes import of {library_name} which"
             " is not in whitelist."
         )
+
+
+class TemplateFileNotFoundError(FileNotFoundError):
+    """
+    Raised when a template file cannot be found.
+    """
+
+    def __init__(self, template_path, prompt_name="Unknown"):
+        """
+        __init__ method of TemplateFileNotFoundError Class
+
+        Args:
+            template_path (str): Path for template file.
+            prompt_name (str): Prompt name. Defaults to "Unknown".
+        """
+        self.template_path = template_path
+        super().__init__(
+            f"Unable to find a file with template at '{template_path}' "
+            f"for '{prompt_name}' prompt."
+        )
+
+
+class AdvancedReasoningDisabledError(Exception):
+    """
+    Raised when one tries to have access to the answer or reasoning without
+    having use_advanced_reasoning_framework enabled.
+
+    Args:
+        Exception (Exception): AdvancedReasoningDisabledError
+    """
+
+
+class InvalidWorkspacePathError(Exception):
+    """
+    Raised when the environment variable of workspace exist but path is invalid
+
+    Args:
+        Exception (Exception): InvalidWorkspacePathError
+    """

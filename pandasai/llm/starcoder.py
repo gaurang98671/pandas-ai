@@ -8,14 +8,9 @@ Example:
 
     >>> from pandasai.llm.starcoder import Starcoder
 """
+import warnings
 
-
-import os
-from typing import Optional
-
-from dotenv import load_dotenv
-
-from ..exceptions import APIKeyNotFoundError
+from ..helpers import load_dotenv
 from .base import HuggingFaceLLM
 
 load_dotenv()
@@ -23,26 +18,20 @@ load_dotenv()
 
 class Starcoder(HuggingFaceLLM):
 
-    """Starcoder LLM API
-
-    A base HuggingFaceLLM class is extended to use Starcoder model.
-
-    """
+    """Starcoder LLM API (Deprecated: Kept for backwards compatibility)"""
 
     api_token: str
     _api_url: str = "https://api-inference.huggingface.co/models/bigcode/starcoder"
-    _max_retries: int = 5
+    _max_retries: int = 30
 
-    def __init__(self, api_token: Optional[str] = None):
-        """
-        __init__ method of Starcoder Class
-        Args:
-            api_token (str): API token from Huggingface platform
-        """
-
-        self.api_token = api_token or os.getenv("HUGGINGFACE_API_KEY") or None
-        if self.api_token is None:
-            raise APIKeyNotFoundError("HuggingFace Hub API key is required")
+    def __init__(self, **kwargs):
+        warnings.warn(
+            """Starcoder is deprecated and will be removed in a future release.
+            Please use langchain.llms.HuggingFaceHub instead, although please be 
+            aware that it may perform poorly.
+            """
+        )
+        super().__init__(**kwargs)
 
     @property
     def type(self) -> str:

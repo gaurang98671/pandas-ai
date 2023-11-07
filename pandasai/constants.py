@@ -1,11 +1,12 @@
 """
 Constants used in the pandasai package.
+
 It includes Start & End Code tags, Whitelisted Python Packages and
 While List Builtin Methods.
-"""
 
-START_CODE_TAG = "<startCode>"
-END_CODE_TAG = "<endCode>"
+"""
+# Default directory to store chart if user doesn't provide any
+DEFAULT_CHART_DIRECTORY = "exports/charts"
 
 # List of Python builtin libraries that are added to the environment by default.
 WHITELISTED_BUILTINS = [
@@ -36,7 +37,6 @@ WHITELISTED_BUILTINS = [
     "help",
     "hex",
     "id",
-    "input",
     "int",
     "isinstance",
     "issubclass",
@@ -51,7 +51,6 @@ WHITELISTED_BUILTINS = [
     "next",
     "object",
     "oct",
-    "open",
     "ord",
     "pow",
     "print",

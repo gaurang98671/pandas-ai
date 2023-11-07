@@ -3,7 +3,7 @@
 import pytest
 
 from pandasai.exceptions import APIKeyNotFoundError
-from pandasai.llm.base import LLM
+from pandasai.llm import LLM
 
 
 class TestBaseLLM:
@@ -50,14 +50,6 @@ print('Hello World')
 
         code = """Sure, here is your code:
 
-<startCode>
-print('Hello World')
-<endCode>
-"""
-        assert LLM()._extract_code(code) == "print('Hello World')"
-
-        code = """Sure, here is your code:
-
 ```
 print('Hello World')
 ```
@@ -73,11 +65,17 @@ print('Hello World')
 
         assert LLM()._extract_code(code) == "print('Hello World')"
 
-        code = """Sure, here is your code:
-<startCode>
-print('Hello World')
-<endCode>
-```
-"""
+    def test_extract_answer(self):
+        llm = LLM()
+        response = "<answer>This is the answer.</answer>"
+        expected_answer = "This is the answer."
+        assert llm._extract_answer(response) == expected_answer
 
-        assert LLM()._extract_code(code) == "print('Hello World')"
+    def test_extract_answer_with_temp_chart(self):
+        llm = LLM()
+        response = (
+            "<answer>This is the answer. It returns a temp_chart.png. "
+            "But it shouldn't.</answer>"
+        )
+        expected_answer = "This is the answer. But it shouldn't."
+        assert llm._extract_answer(response) == expected_answer

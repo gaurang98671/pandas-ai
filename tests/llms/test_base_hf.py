@@ -3,8 +3,9 @@
 import pytest
 import requests
 
+from pandasai.exceptions import LLMResponseHTTPError
 from pandasai.llm.base import HuggingFaceLLM
-from pandasai.prompts.base import Prompt
+from pandasai.prompts import AbstractPrompt
 
 
 class TestBaseHfLLM:
@@ -15,28 +16,33 @@ class TestBaseHfLLM:
         return [{"generated_text": "Some text"}]
 
     @pytest.fixture
-    def prompt(self):
-        class MockPrompt(Prompt):
-            text: str = "instruction"
+    def api_response_401(self):
+        return {"error": "Authorization header is correct, but the token seems invalid"}
 
-        return MockPrompt()
+    @pytest.fixture
+    def prompt(self):
+        class MockAbstractPrompt(AbstractPrompt):
+            template: str = "instruction"
+
+        return MockAbstractPrompt()
 
     def test_type(self):
-        assert HuggingFaceLLM().type == "huggingface-llm"
+        assert HuggingFaceLLM(api_token="test_token").type == "huggingface-llm"
 
     def test_api_url(self):
         assert (
-            HuggingFaceLLM()._api_url == "https://api-inference.huggingface.co/models/"
+            HuggingFaceLLM(api_token="test_token")._api_url
+            == "https://api-inference.huggingface.co/models/"
         )
 
     def test_query(self, mocker, api_response):
         response_mock = mocker.Mock()
+        response_mock.status_code = 200
         response_mock.json.return_value = api_response
         mocker.patch("requests.post", return_value=response_mock)
 
         # Call the query method
-        llm = HuggingFaceLLM()
-        llm.api_token = "test_token"
+        llm = HuggingFaceLLM(api_token="test_token")
         payload = {"inputs": "Some input text"}
         result = llm.query(payload)
 
@@ -51,9 +57,29 @@ class TestBaseHfLLM:
         # Check that the result is correct
         assert result == api_response[0]["generated_text"]
 
+    def test_query_http_error_401(self, mocker, api_response_401):
+        response_mock = mocker.Mock()
+        response_mock.status_code = 401
+        response_mock.json.return_value = api_response_401
+        mocker.patch("requests.post", return_value=response_mock)
+
+        llm = HuggingFaceLLM(api_token="test_token")
+        payload = {"inputs": "Some input text"}
+
+        with pytest.raises(LLMResponseHTTPError) as exc:
+            llm.query(payload)
+
+        assert api_response_401.get("error") in str(exc.value)
+
+        requests.post.assert_called_once_with(
+            llm._api_url,
+            headers={"Authorization": "Bearer test_token"},
+            json=payload,
+            timeout=60,
+        )
+
     def test_call(self, mocker, prompt):
-        huggingface = HuggingFaceLLM()
-        huggingface.api_token = "test_token"
+        huggingface = HuggingFaceLLM(api_token="test_token")
 
         mocker.patch.object(huggingface, "call", return_value="Generated text")
 
@@ -61,19 +87,17 @@ class TestBaseHfLLM:
         assert result == "Generated text"
 
     def test_call_removes_original_prompt(self, mocker):
-        huggingface = HuggingFaceLLM()
-        huggingface.api_token = "test_token"
+        huggingface = HuggingFaceLLM(api_token="test_token")
 
-        class MockPrompt(Prompt):
-            text: str = "instruction "
+        class MockAbstractPrompt(AbstractPrompt):
+            template: str = "instruction "
 
-        instruction = MockPrompt()
-        value = "value "
+        instruction = MockAbstractPrompt()
         suffix = "suffix "
 
         mocker.patch.object(
-            huggingface, "query", return_value="instruction value suffix generated text"
+            huggingface, "query", return_value="instruction suffix generated text"
         )
 
-        result = huggingface.call(instruction, value, suffix)
+        result = huggingface.call(instruction, suffix)
         assert result == "generated text"

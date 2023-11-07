@@ -15,9 +15,10 @@ import os
 from typing import Any, Dict, Optional
 
 import openai
-from dotenv import load_dotenv
+from ..helpers import load_dotenv
 
-from ..exceptions import APIKeyNotFoundError, UnsupportedOpenAIModelError
+from ..exceptions import APIKeyNotFoundError, MissingModelError
+from ..prompts.base import AbstractPrompt
 from .base import BaseOpenAI
 
 load_dotenv()
@@ -25,7 +26,7 @@ load_dotenv()
 
 class AzureOpenAI(BaseOpenAI):
     """OpenAI LLM via Microsoft Azure
-    This class in using BaseOpenAI class to include Azure OpenAI Features.
+    This class uses `BaseOpenAI` class to support Azure OpenAI features.
     """
 
     api_base: str
@@ -39,11 +40,11 @@ class AzureOpenAI(BaseOpenAI):
         api_base: Optional[str] = None,
         api_version: Optional[str] = None,
         deployment_name: str = None,
-        is_chat_model: Optional[bool] = False,
+        is_chat_model: bool = True,
         **kwargs,
     ):
         """
-        __init__ method of AzureOpenAI Class
+        __init__ method of AzureOpenAI Class.
 
         Args:
             api_token (str): Azure OpenAI API token.
@@ -54,8 +55,8 @@ class AzureOpenAI(BaseOpenAI):
                 Be aware the API version may change.
             deployment_name (str): Custom name of the deployed model
             is_chat_model (bool): Whether ``deployment_name`` corresponds to a Chat
-                or a Completion model
-            **kwargs: Inference Parameters
+                or a Completion model.
+            **kwargs: Inference Parameters.
         """
 
         self.api_token = api_token or os.getenv("OPENAI_API_KEY") or None
@@ -82,7 +83,10 @@ class AzureOpenAI(BaseOpenAI):
         openai.api_type = self.api_type
 
         if deployment_name is None:
-            raise UnsupportedOpenAIModelError("Model deployment name is required.")
+            raise MissingModelError(
+                "No deployment name provided.",
+                "Please include deployment name from Azure dashboard.",
+            )
 
         self.is_chat_model = is_chat_model
         self.engine = deployment_name
@@ -95,33 +99,34 @@ class AzureOpenAI(BaseOpenAI):
 
     @property
     def _default_params(self) -> Dict[str, Any]:
-        """Get the default parameters for calling OpenAI API
+        """
+        Get the default parameters for calling OpenAI API.
 
-        Returns: A dict of Default Params
+        Returns:
+            dict: A dictionary containing Default Params.
 
         """
         return {**super()._default_params, "engine": self.engine}
 
-    def call(self, instruction: str, value: str, suffix: str = "") -> str:
+    def call(self, instruction: AbstractPrompt, suffix: str = "") -> str:
         """
         Call the Azure OpenAI LLM.
 
         Args:
-            instruction (str): Instruction to pass
-            value (str): Value to pass
-            suffix(str): Suffix to pass
+            instruction (AbstractPrompt): A prompt object with instruction for LLM.
+            suffix (str): Suffix to pass.
 
         Returns:
-            str: Response
+            str: LLM response.
+
         """
-        self.last_prompt = str(instruction) + str(value)
+        self.last_prompt = instruction.to_string() + suffix
 
-        if self.is_chat_model:
-            response = self.chat_completion(str(instruction) + str(value) + suffix)
-        else:
-            response = self.completion(str(instruction) + str(value) + suffix)
-
-        return response
+        return (
+            self.chat_completion(self.last_prompt)
+            if self.is_chat_model
+            else self.completion(self.last_prompt)
+        )
 
     @property
     def type(self) -> str:
